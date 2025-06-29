@@ -330,22 +330,6 @@
             width: 0%;
             transition: width 0.3s ease;
         }
-
-        select {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            padding: 8px;
-            color: white;
-            font-family: 'Orbitron', monospace;
-            margin: 10px 0;
-            cursor: pointer;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: #00ff88;
-        }
     </style>
 </head>
 <body>
@@ -367,7 +351,6 @@
                 <div class="progress-fill" id="xpBar"></div>
             </div>
             <div>XP: <span id="xp">0</span> / <span id="xpNeeded">100</span></div>
-            <button class="payout-btn" onclick="resetData()">RESET ALL DATA</button>
         </div>
         
         <div class="tabs">
@@ -419,12 +402,7 @@
                 <div class="earning-card">
                     <h3>📊 Fake Stock Market</h3>
                     <p>Invest and wait for returns</p>
-                    <p>Investment: $1.00 | Return: $0-$2.00</p>
-                    <select id="stockAmount">
-                        <option value="1">Invest $1.00</option>
-                        <option value="5">Invest $5.00</option>
-                        <option value="10">Invest $10.00</option>
-                    </select>
+                    <p>Investment: $1.00 | Return: $0.5-$1.50</p>
                     <button class="earn-btn" onclick="investStock()">INVEST IN STOCKS</button>
                     <div id="stockTimer"></div>
                 </div>
@@ -432,12 +410,7 @@
                 <div class="earning-card">
                     <h3>⛏️ Fake Mining</h3>
                     <p>Mine fake cryptocurrency</p>
-                    <p>Cost: $0.50 | Earn: $0-$2.50</p>
-                    <select id="miningAmount">
-                        <option value="0.5">Mine $0.50</option>
-                        <option value="2">Mine $2.00</option>
-                        <option value="5">Mine $5.00</option>
-                    </select>
+                    <p>Cost: $0.50 | Earn: $0.60-$2.00</p>
                     <button class="earn-btn" onclick="startMining()">START MINING</button>
                     <div id="miningTimer"></div>
                 </div>
@@ -445,7 +418,7 @@
                 <div class="earning-card">
                     <h3>🎰 Lucky Spin</h3>
                     <p>Spin the wheel of fortune</p>
-                    <p>Cost: $0.25 | Win: $0-$2.00</p>
+                    <p>Cost: $0.25 | Win: $0.05-$1.00</p>
                     <button class="earn-btn" onclick="spinWheel()">SPIN WHEEL</button>
                 </div>
                 
@@ -481,7 +454,7 @@
                     <p>Guess a number between 1-10</p>
                     <input type="number" id="guessInput" min="1" max="10" placeholder="Enter guess">
                     <button class="earn-btn" onclick="playGuessGame()">GUESS & WIN</button>
-                    <div>Win: $0.50 | Lose: -$0.15</div>
+                    <div>Win: $0.50 | Lose: -$0.10</div>
                 </div>
                 
                 <div class="mini-game">
@@ -493,7 +466,7 @@
                         <button onclick="flipCard(2)">Card 3</button>
                         <button onclick="flipCard(3)">Card 4</button>
                     </div>
-                    <div>Win: $1.00 | Lose: -$0.35</div>
+                    <div>Win: $1.00 | Lose: -$0.40</div>
                 </div>
                 
                 <div class="mini-game">
@@ -501,7 +474,7 @@
                     <p>Click as fast as you can in 10 seconds</p>
                     <button class="earn-btn" id="clickBtn" onclick="startClickChallenge()">START CHALLENGE</button>
                     <div>Clicks: <span id="clickCount">0</span> | Time: <span id="clickTime">10</span>s</div>
-                    <div>Earn $0.005 per click!</div>
+                    <div>Earn $0.01 per click!</div>
                 </div>
             </div>
         </div>
@@ -540,14 +513,7 @@
             xp: 0,
             clickCount: 0,
             dailyClaimed: false,
-            acePosition: 0,
-            luckBoost: false,
-            xpDoubler: false,
-            autoClicker: false,
-            interestGenerator: false,
-            efficiencyBoost: false,
-            timeWarp: false,
-            lastDailyClaim: 0
+            acePosition: 0
         };
         
         const boosts = [
@@ -582,61 +548,12 @@
             {name: "Multiverse King", multiplier: 10000, price: 50000.00, rarity: "cosmic", description: "10000x earnings multiplier"},
             
             // Special Boosts
-            {name: "Luck Enhancer", multiplier: 1.2, price: 25.00, rarity: "rare", description: "1.2x rewards from games", special: "luck"},
+            {name: "Luck Enhancer", multiplier: 1.5, price: 25.00, rarity: "rare", description: "Better rewards from games", special: "luck"},
             {name: "XP Doubler", multiplier: 1, price: 75.00, rarity: "epic", description: "Double XP gain", special: "xp"},
             {name: "Auto Clicker", multiplier: 1, price: 150.00, rarity: "legendary", description: "Clicks for you every second", special: "auto"},
-            {name: "Interest Generator", multiplier: 1, price: 300.00, rarity: "mythic", description: "+0.5% balance every minute", special: "interest"},
-            {name: "Efficiency Boost", multiplier: 1, price: 200.00, rarity: "legendary", description: "Reduce timers by 20%", special: "efficiency"},
-            {name: "Time Warp", multiplier: 1, price: 400.00, rarity: "mythic", description: "Reduce timers by 50%", special: "timeWarp"}
+            {name: "Interest Generator", multiplier: 1, price: 300.00, rarity: "mythic", description: "+1% balance every minute", special: "interest"}
         ];
         
-        function loadGameData() {
-            const savedData = localStorage.getItem('earnSimData');
-            if (savedData) {
-                gameData = JSON.parse(savedData);
-                // Check if daily bonus can be reset
-                const now = Date.now();
-                if (gameData.lastDailyClaim && (now - gameData.lastDailyClaim >= 24 * 60 * 60 * 1000)) {
-                    gameData.dailyClaimed = false;
-                }
-            }
-            updateDisplay();
-        }
-
-        function saveGameData() {
-            localStorage.setItem('earnSimData', JSON.stringify(gameData));
-        }
-
-        function resetData() {
-            if (confirm('Are you sure you want to reset all game data? This cannot be undone!')) {
-                gameData = {
-                    balance: 0,
-                    totalEarned: 0,
-                    multiplier1: 1,
-                    multiplier2: 1,
-                    multiplier3: 1,
-                    multiplier4: 1,
-                    payouts: 0,
-                    level: 1,
-                    xp: 0,
-                    clickCount: 0,
-                    dailyClaimed: false,
-                    acePosition: 0,
-                    luckBoost: false,
-                    xpDoubler: false,
-                    autoClicker: false,
-                    interestGenerator: false,
-                    efficiencyBoost: false,
-                    timeWarp: false,
-                    lastDailyClaim: 0
-                };
-                localStorage.removeItem('earnSimData');
-                document.getElementById('payoutHistory').innerHTML = '';
-                updateDisplay();
-                showNotification('Game data reset!');
-            }
-        }
-
         function initializeBoosts() {
             const boostGrid = document.getElementById('boostGrid');
             boosts.forEach((boost, index) => {
@@ -666,10 +583,11 @@
             document.getElementById('level').textContent = gameData.level;
             document.getElementById('xp').textContent = gameData.xp;
             
-            const xpNeeded = gameData.level * 150; // Increased XP requirement
+            const xpNeeded = gameData.level * 100;
             document.getElementById('xpNeeded').textContent = xpNeeded;
             document.getElementById('xpBar').style.width = (gameData.xp / xpNeeded * 100) + '%';
             
+            // Update multipliers
             for(let i = 1; i <= 4; i++) {
                 const multiplierEl = document.getElementById(`multiplier${i}`);
                 if(multiplierEl) {
@@ -684,29 +602,20 @@
                     payoutBtn.textContent = 'REQUEST FAKE PAYOUT ($10.00)';
                 }
             }
-
-            document.getElementById('dailyBtn').disabled = gameData.dailyClaimed;
-            if (gameData.dailyClaimed) {
-                document.getElementById('dailyBtn').textContent = 'CLAIMED TODAY';
-            } else {
-                document.getElementById('dailyBtn').textContent = 'CLAIM DAILY';
-            }
         }
         
         function gainXP(amount) {
-            const xpGain = gameData.xpDoubler ? amount * 2 : amount;
-            gameData.xp += xpGain;
-            const xpNeeded = gameData.level * 150; // Increased difficulty
+            gameData.xp += amount;
+            const xpNeeded = gameData.level * 100;
             if(gameData.xp >= xpNeeded) {
                 gameData.xp -= xpNeeded;
                 gameData.level++;
                 showNotification(`🎉 Level Up! Now level ${gameData.level}`);
-                const bonus = gameData.level * 0.25; // Reduced level up bonus
+                // Level up bonus
+                const bonus = gameData.level * 0.50;
                 gameData.balance += bonus;
-                gameData.totalEarned += bonus;
                 showNotification(`💰 Level up bonus: $${bonus.toFixed(2)}`);
             }
-            saveGameData();
         }
         
         function showNotification(message) {
@@ -718,22 +627,14 @@
             }, 3000);
         }
         
-        function getTimerReduction() {
-            let reduction = 1;
-            if (gameData.efficiencyBoost) reduction *= 0.8;
-            if (gameData.timeWarp) reduction *= 0.5;
-            return reduction;
-        }
-        
         function startEarning(buttonNum, duration, baseAmount) {
             const button = document.getElementById(`earn${buttonNum}`);
             const timer = document.getElementById(`timer${buttonNum}`);
             const multiplier = gameData[`multiplier${buttonNum}`];
             
             button.disabled = true;
-            const reducedDuration = duration * getTimerReduction();
             
-            let timeLeft = reducedDuration;
+            let timeLeft = duration;
             const interval = setInterval(() => {
                 timeLeft -= 100;
                 timer.textContent = `⏱️ ${(timeLeft / 1000).toFixed(1)}s`;
@@ -751,7 +652,6 @@
                     showNotification(`+$${earned.toFixed(2)} earned!`);
                 }
             }, 100);
-            saveGameData();
         }
         
         function buyBoost(index) {
@@ -762,6 +662,7 @@
                 if(boost.special) {
                     handleSpecialBoost(boost);
                 } else {
+
                     for(let i = 1; i <= 4; i++) {
                         gameData[`multiplier${i}`] = Math.max(gameData[`multiplier${i}`], boost.multiplier);
                     }
@@ -769,7 +670,6 @@
                 
                 updateDisplay();
                 showNotification(`${boost.name} purchased! ${boost.description}`);
-                saveGameData();
             } else {
                 showNotification('Not enough fake money!');
             }
@@ -787,10 +687,9 @@
                     if(!gameData.autoClicker) {
                         gameData.autoClicker = true;
                         setInterval(() => {
-                            gameData.balance += 0.005 * gameData.multiplier1;
-                            gameData.totalEarned += 0.005 * gameData.multiplier1;
+                            gameData.balance += 0.01 * gameData.multiplier1;
+                            gameData.totalEarned += 0.01 * gameData.multiplier1;
                             updateDisplay();
-                            saveGameData();
                         }, 1000);
                     }
                     break;
@@ -798,88 +697,64 @@
                     if(!gameData.interestGenerator) {
                         gameData.interestGenerator = true;
                         setInterval(() => {
-                            const interest = gameData.balance * 0.005; // Reduced to 0.5%
+                            const interest = gameData.balance * 0.01;
                             gameData.balance += interest;
                             gameData.totalEarned += interest;
                             if(interest > 0.01) {
                                 showNotification(`💰 Interest earned: ${interest.toFixed(2)}`);
                             }
                             updateDisplay();
-                            saveGameData();
                         }, 60000);
                     }
-                    break;
-                case 'efficiency':
-                    gameData.efficiencyBoost = true;
-                    break;
-                case 'timeWarp':
-                    gameData.timeWarp = true;
                     break;
             }
         }
         
         function investStock() {
-            const amount = parseFloat(document.getElementById('stockAmount').value);
-            if(gameData.balance >= amount) {
-                gameData.balance -= amount;
+            if(gameData.balance >= 1.00) {
+                gameData.balance -= 1.00;
                 updateDisplay();
                 showNotification('📊 Investment started...');
                 
-                const duration = 60000 * getTimerReduction();
                 setTimeout(() => {
-                    const lossChance = Math.random();
-                    let profit = 0;
-                    if (lossChance < 0.4) { // 40% chance to lose
-                        showNotification('📉 Investment failed! Lost investment.');
-                    } else {
-                        const return_multiplier = Math.random() * 2; // 0x-2x return
-                        profit = amount * return_multiplier;
-                        gameData.balance += profit;
-                        gameData.totalEarned += profit - amount;
-                        showNotification(`📈 Stock returned: ${profit.toFixed(2)}`);
-                    }
-                    gainXP(15 * amount);
+                    const return_multiplier = 0.5 + Math.random() * 0.45; 
+                    const profit = 1.00 * return_multiplier;
+                    gameData.balance += profit;
+                    gameData.totalEarned += profit - 1.00;
+                    gainXP(15);
                     updateDisplay();
-                    saveGameData();
-                }, duration);
+                    showNotification(`📈 Stock returned: ${profit.toFixed(2)}`);
+                }, 45000);
             } else {
-                showNotification(`Need $${amount.toFixed(2)} to invest!`);
+                showNotification('Need $1.00 to invest!');
             }
         }
         
         function startMining() {
-            const amount = parseFloat(document.getElementById('miningAmount').value);
-            if(gameData.balance >= amount) {
-                gameData.balance -= amount;
+            if(gameData.balance >= 0.50) {
+                gameData.balance -= 0.50;
                 updateDisplay();
                 const miningTimer = document.getElementById('miningTimer');
                 showNotification('⛏️ Mining started...');
                 
-                let timeLeft = 60000 * getTimerReduction();
+                let timeLeft = 60000;
                 const interval = setInterval(() => {
                     timeLeft -= 1000;
                     miningTimer.textContent = `⏱️ ${Math.ceil(timeLeft / 1000)}s`;
                     
                     if(timeLeft <= 0) {
                         clearInterval(interval);
-                        const lossChance = Math.random();
-                        let mined = 0;
-                        if (lossChance < 0.3) { // 30% chance to lose
-                            showNotification('⛏️ Mining failed! Lost investment.');
-                        } else {
-                            mined = amount * (Math.random() * 2.5); // 0x-2.5x return
-                            gameData.balance += mined;
-                            gameData.totalEarned += mined - amount;
-                            showNotification(`⛏️ Mined: ${mined.toFixed(2)}`);
-                        }
-                        gainXP(20 * amount);
+                        const mined = 0.60 + Math.random() * 1.40; 
+                        gameData.balance += mined;
+                        gameData.totalEarned += mined - 0.50;
+                        gainXP(20);
                         miningTimer.textContent = '';
                         updateDisplay();
-                        saveGameData();
+                        showNotification(`⛏️ Mined: ${mined.toFixed(2)}`);
                     }
                 }, 1000);
             } else {
-                showNotification(`Need $${amount.toFixed(2)} to start mining!`);
+                showNotification('Need $0.50 to start mining!');
             }
         }
         
@@ -888,12 +763,12 @@
                 gameData.balance -= 0.25;
                 updateDisplay();
                 
-                const outcomes = [0, 0.10, 0.20, 0.30, 0.50, 1.00, 1.50, 2.00];
-                const weights = [40, 30, 15, 10, 3, 1.5, 0.4, 0.1]; // Increased chance of low/no rewards
+                const outcomes = [0.05, 0.10, 0.15, 0.20, 0.30, 0.50, 1.00];
+                const weights = [30, 25, 20, 15, 7, 2, 0.8, 0.2];
                 
                 let random = Math.random() * 100;
                 let cumulative = 0;
-                let winAmount = 0;
+                let winAmount = 0.10;
                 
                 for(let i = 0; i < weights.length; i++) {
                     cumulative += weights[i];
@@ -903,14 +778,13 @@
                     }
                 }
                 
-                if(gameData.luckBoost) winAmount *= 1.2; // Reduced luck boost effect
+                if(gameData.luckBoost) winAmount *= 1.5;
                 
                 gameData.balance += winAmount;
                 gameData.totalEarned += winAmount - 0.25;
                 gainXP(10);
                 updateDisplay();
                 showNotification(`🎰 Spin result: ${winAmount.toFixed(2)}`);
-                saveGameData();
             } else {
                 showNotification('Need $0.25 to spin!');
             }
@@ -923,7 +797,7 @@
             surveyBtn.disabled = true;
             showNotification('📝 Starting survey...');
             
-            let timeLeft = 20000 * getTimerReduction();
+            let timeLeft = 20000;
             const interval = setInterval(() => {
                 timeLeft -= 1000;
                 surveyTimer.textContent = `⏱️ ${Math.ceil(timeLeft / 1000)}s`;
@@ -938,7 +812,6 @@
                     surveyTimer.textContent = '';
                     updateDisplay();
                     showNotification(`📝 Survey completed: ${earned.toFixed(2)}`);
-                    saveGameData();
                 }
             }, 1000);
         }
@@ -950,7 +823,7 @@
             adBtn.disabled = true;
             showNotification('📱 Watching ad...');
             
-            let timeLeft = 10000 * getTimerReduction();
+            let timeLeft = 10000;
             const interval = setInterval(() => {
                 timeLeft -= 1000;
                 adTimer.textContent = `⏱️ ${Math.ceil(timeLeft / 1000)}s`;
@@ -965,7 +838,6 @@
                     adTimer.textContent = '';
                     updateDisplay();
                     showNotification(`📱 Ad watched: ${earned.toFixed(2)}`);
-                    saveGameData();
                 }
             }, 1000);
         }
@@ -976,7 +848,6 @@
                 gameData.balance += earned;
                 gameData.totalEarned += earned;
                 gameData.dailyClaimed = true;
-                gameData.lastDailyClaim = Date.now();
                 gainXP(50);
                 updateDisplay();
                 showNotification(`🎯 Daily bonus claimed: ${earned.toFixed(2)}`);
@@ -984,15 +855,13 @@
                 document.getElementById('dailyBtn').textContent = 'CLAIMED TODAY';
                 document.getElementById('dailyBtn').disabled = true;
                 
+
                 setTimeout(() => {
                     gameData.dailyClaimed = false;
                     document.getElementById('dailyBtn').textContent = 'CLAIM DAILY';
                     document.getElementById('dailyBtn').disabled = false;
-                    updateDisplay();
                     showNotification('🎯 Daily bonus available again!');
-                    saveGameData();
-                }, 24 * 60 * 60 * 1000); // 24 hours
-                saveGameData();
+                }, 300000);
             }
         }
         
@@ -1003,18 +872,17 @@
             if(guess >= 1 && guess <= 10) {
                 if(guess === correct) {
                     let winAmount = 0.50;
-                    if(gameData.luckBoost) winAmount *= 1.2;
+                    if(gameData.luckBoost) winAmount *= 1.5;
                     gameData.balance += winAmount;
                     gameData.totalEarned += winAmount;
                     gainXP(25);
                     showNotification(`🎉 Correct! Number was ${correct}. Won ${winAmount.toFixed(2)}`);
                 } else {
-                    gameData.balance -= 0.15; // Increased loss penalty
-                    showNotification(`❌ Wrong! Number was ${correct}. Lost $0.15`);
+                    gameData.balance -= 0.10;
+                    showNotification(`❌ Wrong! Number was ${correct}. Lost $0.10`);
                 }
                 updateDisplay();
                 document.getElementById('guessInput').value = '';
-                saveGameData();
             } else {
                 showNotification('Please enter a number between 1 and 10!');
             }
@@ -1023,19 +891,19 @@
         function flipCard(cardIndex) {
             if(gameData.acePosition === cardIndex) {
                 let winAmount = 1.00;
-                if(gameData.luckBoost) winAmount *= 1.2;
+                if(gameData.luckBoost) winAmount *= 1.5;
                 gameData.balance += winAmount;
                 gameData.totalEarned += winAmount;
                 gainXP(30);
                 showNotification(`🃏 Found the Ace! Won ${winAmount.toFixed(2)}`);
             } else {
-                gameData.balance -= 0.35; // Increased loss penalty
+                gameData.balance -= 0.40;
                 showNotification(`❌ Wrong card! The Ace was at position ${gameData.acePosition + 1}`);
             }
             
+
             gameData.acePosition = Math.floor(Math.random() * 4);
             updateDisplay();
-            saveGameData();
         }
         
         function startClickChallenge() {
@@ -1059,7 +927,7 @@
                 
                 if(timeLeft <= 0) {
                     clearInterval(interval);
-                    const earned = gameData.clickCount * 0.005 * gameData.multiplier1; // Reduced per-click reward
+                    const earned = gameData.clickCount * 0.01 * gameData.multiplier1;
                     gameData.balance += earned;
                     gameData.totalEarned += earned;
                     gainXP(gameData.clickCount);
@@ -1071,7 +939,6 @@
                     
                     updateDisplay();
                     showNotification(`⚡ Challenge complete! ${gameData.clickCount} clicks = ${earned.toFixed(2)}`);
-                    saveGameData();
                 }
             }, 1000);
         }
@@ -1091,6 +958,7 @@
                 showNotification('Fake payout processed! 🎉');
                 gainXP(100);
                 
+
                 if (gameData.payouts >= 3) {
                     const specialShop = document.createElement('div');
                     specialShop.style.cssText = 'margin-top: 20px; padding: 15px; background: rgba(255,215,0,0.2); border-radius: 10px; border: 2px solid gold;';
@@ -1107,7 +975,6 @@
                         payoutHistory.appendChild(specialShop);
                     }
                 }
-                saveGameData();
             }
         }
         
@@ -1116,18 +983,18 @@
                 gameData.payouts -= cost;
                 showNotification(`🎁 You bought: ${item}! (This is fake too!)`);
                 updateDisplay();
-                saveGameData();
             } else {
                 showNotification('Not enough fake payouts!');
             }
         }
         
+
         function initGame() {
-            loadGameData();
             initializeBoosts();
             updateDisplay();
             gameData.acePosition = Math.floor(Math.random() * 4);
             
+
             setInterval(() => {
                 const particle = document.createElement('div');
                 particle.textContent = ['💰', '💎', '⭐', '🎉', '✨', '🚀', '⚡', '🎯'][Math.floor(Math.random() * 8)];
@@ -1145,6 +1012,7 @@
             }, 2000);
         }
         
+
         const style = document.createElement('style');
         style.textContent = `
             @keyframes float {
@@ -1156,7 +1024,37 @@
         `;
         document.head.appendChild(style);
         
+
         initGame();
     </script>
+    <body oncontextmenu="return false;">
+<script>
+  document.addEventListener('contextmenu', event => event.preventDefault());
+</script>
+<script>
+  let devToolsOpen = false;
+  const threshold = 160;
+  setInterval(() => {
+    if (window.outerWidth - window.innerWidth > threshold || 
+        window.outerHeight - window.innerHeight > threshold) {
+      if (!devToolsOpen) {
+        devToolsOpen = true;
+        alert('Developer tools detected! Please close them.');
+        // Optionally redirect: window.location.href = 'about:blank';
+      }
+    } else {
+      devToolsOpen = false;
+    }
+  }, 1000);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F12' || 
+        (e.ctrlKey && e.shiftKey && ['I', 'C', 'J'].includes(e.key)) ||
+        (e.ctrlKey && e.key === 'U')) {
+      e.preventDefault();
+      alert('Access to developer tools is restricted.');
+    }
+  });
+</script>
 </body>
 </html>
