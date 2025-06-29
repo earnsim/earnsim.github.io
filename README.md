@@ -330,6 +330,41 @@
             width: 0%;
             transition: width 0.3s ease;
         }
+        
+        .save-reset-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .save-btn, .reset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .save-btn {
+            background: linear-gradient(45deg, #4a90e2, #2b6cb0);
+        }
+        
+        .save-btn:hover {
+            background: linear-gradient(45deg, #2b6cb0, #4a90e2);
+        }
+        
+        .reset-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+        
+        .reset-btn:hover {
+            background: linear-gradient(45deg, #c0392b, #e74c3c);
+        }
     </style>
 </head>
 <body>
@@ -341,6 +376,11 @@
         
         <div class="disclaimer">
             ⚠️ THIS IS A SIMULATION GAME - NO REAL MONEY INVOLVED ⚠️
+        </div>
+        
+        <div class="save-reset-buttons">
+            <button class="save-btn" onclick="saveGameData()">SAVE GAME</button>
+            <button class="reset-btn" onclick="resetGameData()">RESET GAME</button>
         </div>
         
         <div class="balance-section">
@@ -408,7 +448,7 @@
                 </div>
                 
                 <div class="earning-card">
-                    <h3>⛏️ Fake Mining</hน้ำ
+                    <h3>⛏️ Fake Mining</h3>
                     <p>Mine fake cryptocurrency</p>
                     <p>Cost: $0.50 | Earn: $0.60-$2.00</p>
                     <button class="earn-btn" onclick="startMining()">START MINING</button>
@@ -513,22 +553,13 @@
             xp: 0,
             clickCount: 0,
             dailyClaimed: false,
-            acePosition: 0
+            acePosition: 0,
+            lastDaily: 0,
+            luckBoost: false,
+            xpDoubler: false,
+            autoClicker: false,
+            interestGenerator: false
         };
-        
-        // Load game data from localStorage if available
-        function loadGameData() {
-            const savedData = localStorage.getItem('earnSimData');
-            if (savedData) {
-                gameData = JSON.parse(savedData);
-                updateDisplay();
-            }
-        }
-        
-        // Save game data to localStorage
-        function saveGameData() {
-            localStorage.setItem('earnSimData', JSON.stringify(gameData));
-        }
         
         const boosts = [
             // Common Boosts
@@ -567,6 +598,86 @@
             {name: "Auto Clicker", multiplier: 1, price: 150.00, rarity: "legendary", description: "Clicks for you every second", special: "auto"},
             {name: "Interest Generator", multiplier: 1, price: 300.00, rarity: "mythic", description: "+1% balance every minute", special: "interest"}
         ];
+        
+        // Save game data to localStorage
+        function saveGameData() {
+            localStorage.setItem('earnSimSave', JSON.stringify(gameData));
+            showNotification('Game saved successfully!');
+        }
+        
+        // Load game data from localStorage
+        function loadGameData() {
+            const savedData = localStorage.getItem('earnSimSave');
+            if (savedData) {
+                gameData = JSON.parse(savedData);
+                
+                // Reinitialize any intervals for special boosts
+                if (gameData.autoClicker) {
+                    setInterval(() => {
+                        gameData.balance += 0.01 * gameData.multiplier1;
+                        gameData.totalEarned += 0.01 * gameData.multiplier1;
+                        updateDisplay();
+                    }, 1000);
+                }
+                
+                if (gameData.interestGenerator) {
+                    setInterval(() => {
+                        const interest = gameData.balance * 0.01;
+                        gameData.balance += interest;
+                        gameData.totalEarned += interest;
+                        if(interest > 0.01) {
+                            showNotification(`💰 Interest earned: ${interest.toFixed(2)}`);
+                        }
+                        updateDisplay();
+                    }, 60000);
+                }
+                
+                // Check if daily bonus should be available
+                const now = Date.now();
+                if (now - gameData.lastDaily > 86400000) { // 24 hours
+                    gameData.dailyClaimed = false;
+                    document.getElementById('dailyBtn').textContent = 'CLAIM DAILY';
+                    document.getElementById('dailyBtn').disabled = false;
+                }
+                
+                updateDisplay();
+                showNotification('Game loaded successfully!');
+            }
+        }
+        
+        // Reset all game data
+        function resetGameData() {
+            if (confirm('Are you sure you want to reset all game data? This cannot be undone!')) {
+                localStorage.removeItem('earnSimSave');
+                gameData = {
+                    balance: 0,
+                    totalEarned: 0,
+                    multiplier1: 1,
+                    multiplier2: 1,
+                    multiplier3: 1,
+                    multiplier4: 1,
+                    payouts: 0,
+                    level: 1,
+                    xp: 0,
+                    clickCount: 0,
+                    dailyClaimed: false,
+                    acePosition: Math.floor(Math.random() * 4),
+                    lastDaily: 0,
+                    luckBoost: false,
+                    xpDoubler: false,
+                    autoClicker: false,
+                    interestGenerator: false
+                };
+                
+                // Reset UI elements
+                document.getElementById('dailyBtn').textContent = 'CLAIM DAILY';
+                document.getElementById('dailyBtn').disabled = false;
+                document.getElementById('payoutHistory').innerHTML = '';
+                
+                updateDisplay();
+                showNotification('Game has been reset!');
+            }
+        }
         
         function initializeBoosts() {
             const boostGrid = document.getElementById('boostGrid');
@@ -616,12 +727,10 @@
                     payoutBtn.textContent = 'REQUEST FAKE PAYOUT ($10.00)';
                 }
             }
-            
-            // Save game data after every update
-            saveGameData();
         }
         
         function gainXP(amount) {
+            if (gameData.xpDoubler) amount *= 2;
             gameData.xp += amount;
             const xpNeeded = gameData.level * 100;
             if(gameData.xp >= xpNeeded) {
@@ -633,7 +742,6 @@
                 gameData.balance += bonus;
                 showNotification(`💰 Level up bonus: $${bonus.toFixed(2)}`);
             }
-            saveGameData();
         }
         
         function showNotification(message) {
@@ -659,7 +767,7 @@
                 
                 if (timeLeft <= 0) {
                     clearInterval(interval);
-                    const earned = baseAmount * multiplier;
+                    const earned = baseAmount * gameData[`multiplier${buttonNum}`];
                     gameData.balance += earned;
                     gameData.totalEarned += earned;
                     gainXP(5);
@@ -687,6 +795,7 @@
                 
                 updateDisplay();
                 showNotification(`${boost.name} purchased! ${boost.description}`);
+                saveGameData(); // Auto-save after purchase
             } else {
                 showNotification('Not enough fake money!');
             }
@@ -725,7 +834,6 @@
                     }
                     break;
             }
-            saveGameData();
         }
         
         function investStock() {
@@ -742,6 +850,7 @@
                     gainXP(15);
                     updateDisplay();
                     showNotification(`📈 Stock returned: ${profit.toFixed(2)}`);
+                    saveGameData(); // Auto-save after investment
                 }, 45000);
             } else {
                 showNotification('Need $1.00 to invest!');
@@ -769,6 +878,7 @@
                         miningTimer.textContent = '';
                         updateDisplay();
                         showNotification(`⛏️ Mined: ${mined.toFixed(2)}`);
+                        saveGameData(); // Auto-save after mining
                     }
                 }, 1000);
             } else {
@@ -803,6 +913,7 @@
                 gainXP(10);
                 updateDisplay();
                 showNotification(`🎰 Spin result: ${winAmount.toFixed(2)}`);
+                saveGameData(); // Auto-save after spin
             } else {
                 showNotification('Need $0.25 to spin!');
             }
@@ -830,6 +941,7 @@
                     surveyTimer.textContent = '';
                     updateDisplay();
                     showNotification(`📝 Survey completed: ${earned.toFixed(2)}`);
+                    saveGameData(); // Auto-save after survey
                 }
             }, 1000);
         }
@@ -856,6 +968,7 @@
                     adTimer.textContent = '';
                     updateDisplay();
                     showNotification(`📱 Ad watched: ${earned.toFixed(2)}`);
+                    saveGameData(); // Auto-save after ad
                 }
             }, 1000);
         }
@@ -866,20 +979,23 @@
                 gameData.balance += earned;
                 gameData.totalEarned += earned;
                 gameData.dailyClaimed = true;
+                gameData.lastDaily = Date.now();
                 gainXP(50);
                 updateDisplay();
                 showNotification(`🎯 Daily bonus claimed: ${earned.toFixed(2)}`);
                 
                 document.getElementById('dailyBtn').textContent = 'CLAIMED TODAY';
                 document.getElementById('dailyBtn').disabled = true;
+                saveGameData(); // Auto-save after claiming daily
                 
+                // Reset daily after 24 hours
                 setTimeout(() => {
                     gameData.dailyClaimed = false;
                     document.getElementById('dailyBtn').textContent = 'CLAIM DAILY';
                     document.getElementById('dailyBtn').disabled = false;
                     showNotification('🎯 Daily bonus available again!');
                     saveGameData();
-                }, 300000);
+                }, 86400000); // 24 hours in milliseconds
             }
         }
         
@@ -901,6 +1017,7 @@
                 }
                 updateDisplay();
                 document.getElementById('guessInput').value = '';
+                saveGameData(); // Auto-save after game
             } else {
                 showNotification('Please enter a number between 1 and 10!');
             }
@@ -921,6 +1038,7 @@
             
             gameData.acePosition = Math.floor(Math.random() * 4);
             updateDisplay();
+            saveGameData(); // Auto-save after card flip
         }
         
         function startClickChallenge() {
@@ -956,6 +1074,7 @@
                     
                     updateDisplay();
                     showNotification(`⚡ Challenge complete! ${gameData.clickCount} clicks = ${earned.toFixed(2)}`);
+                    saveGameData(); // Auto-save after challenge
                 }
             }, 1000);
         }
@@ -974,6 +1093,7 @@
                 
                 showNotification('Fake payout processed! 🎉');
                 gainXP(100);
+                saveGameData(); // Auto-save after payout
                 
                 if (gameData.payouts >= 3) {
                     const specialShop = document.createElement('div');
@@ -991,7 +1111,6 @@
                         payoutHistory.appendChild(specialShop);
                     }
                 }
-                saveGameData();
             }
         }
         
@@ -1000,18 +1119,27 @@
                 gameData.payouts -= cost;
                 showNotification(`🎁 You bought: ${item}! (This is fake too!)`);
                 updateDisplay();
-                saveGameData();
+                saveGameData(); // Auto-save after purchase
             } else {
                 showNotification('Not enough fake payouts!');
             }
         }
         
         function initGame() {
-            loadGameData();
             initializeBoosts();
+            loadGameData(); // Load saved data if available
             updateDisplay();
             gameData.acePosition = Math.floor(Math.random() * 4);
             
+            // Check daily bonus availability on load
+            const now = Date.now();
+            if (now - gameData.lastDaily > 86400000) { // 24 hours
+                gameData.dailyClaimed = false;
+                document.getElementById('dailyBtn').textContent = 'CLAIM DAILY';
+                document.getElementById('dailyBtn').disabled = false;
+            }
+            
+            // Add floating money particles
             setInterval(() => {
                 const particle = document.createElement('div');
                 particle.textContent = ['💰', '💎', '⭐', '🎉', '✨', '🚀', '⚡', '🎯'][Math.floor(Math.random() * 8)];
@@ -1027,8 +1155,14 @@
                 document.body.appendChild(particle);
                 setTimeout(() => particle.remove(), 3000);
             }, 2000);
+            
+            // Auto-save every 5 minutes
+            setInterval(() => {
+                saveGameData();
+            }, 300000);
         }
         
+        // Add float animation style
         const style = document.createElement('style');
         style.textContent = `
             @keyframes float {
@@ -1040,6 +1174,7 @@
         `;
         document.head.appendChild(style);
         
+        // Initialize the game
         initGame();
     </script>
     <body oncontextmenu="return false;">
