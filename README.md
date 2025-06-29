@@ -408,7 +408,7 @@
                 </div>
                 
                 <div class="earning-card">
-                    <h3>⛏️ Fake Mining</h3>
+                    <h3>⛏️ Fake Mining</hน้ำ
                     <p>Mine fake cryptocurrency</p>
                     <p>Cost: $0.50 | Earn: $0.60-$2.00</p>
                     <button class="earn-btn" onclick="startMining()">START MINING</button>
@@ -516,6 +516,20 @@
             acePosition: 0
         };
         
+        // Load game data from localStorage if available
+        function loadGameData() {
+            const savedData = localStorage.getItem('earnSimData');
+            if (savedData) {
+                gameData = JSON.parse(savedData);
+                updateDisplay();
+            }
+        }
+        
+        // Save game data to localStorage
+        function saveGameData() {
+            localStorage.setItem('earnSimData', JSON.stringify(gameData));
+        }
+        
         const boosts = [
             // Common Boosts
             {name: "Speed Boost", multiplier: 2, price: 0.50, rarity: "common", description: "2x earnings multiplier"},
@@ -602,6 +616,9 @@
                     payoutBtn.textContent = 'REQUEST FAKE PAYOUT ($10.00)';
                 }
             }
+            
+            // Save game data after every update
+            saveGameData();
         }
         
         function gainXP(amount) {
@@ -616,6 +633,7 @@
                 gameData.balance += bonus;
                 showNotification(`💰 Level up bonus: $${bonus.toFixed(2)}`);
             }
+            saveGameData();
         }
         
         function showNotification(message) {
@@ -662,7 +680,6 @@
                 if(boost.special) {
                     handleSpecialBoost(boost);
                 } else {
-
                     for(let i = 1; i <= 4; i++) {
                         gameData[`multiplier${i}`] = Math.max(gameData[`multiplier${i}`], boost.multiplier);
                     }
@@ -708,6 +725,7 @@
                     }
                     break;
             }
+            saveGameData();
         }
         
         function investStock() {
@@ -855,12 +873,12 @@
                 document.getElementById('dailyBtn').textContent = 'CLAIMED TODAY';
                 document.getElementById('dailyBtn').disabled = true;
                 
-
                 setTimeout(() => {
                     gameData.dailyClaimed = false;
                     document.getElementById('dailyBtn').textContent = 'CLAIM DAILY';
                     document.getElementById('dailyBtn').disabled = false;
                     showNotification('🎯 Daily bonus available again!');
+                    saveGameData();
                 }, 300000);
             }
         }
@@ -901,7 +919,6 @@
                 showNotification(`❌ Wrong card! The Ace was at position ${gameData.acePosition + 1}`);
             }
             
-
             gameData.acePosition = Math.floor(Math.random() * 4);
             updateDisplay();
         }
@@ -958,7 +975,6 @@
                 showNotification('Fake payout processed! 🎉');
                 gainXP(100);
                 
-
                 if (gameData.payouts >= 3) {
                     const specialShop = document.createElement('div');
                     specialShop.style.cssText = 'margin-top: 20px; padding: 15px; background: rgba(255,215,0,0.2); border-radius: 10px; border: 2px solid gold;';
@@ -975,6 +991,7 @@
                         payoutHistory.appendChild(specialShop);
                     }
                 }
+                saveGameData();
             }
         }
         
@@ -983,18 +1000,18 @@
                 gameData.payouts -= cost;
                 showNotification(`🎁 You bought: ${item}! (This is fake too!)`);
                 updateDisplay();
+                saveGameData();
             } else {
                 showNotification('Not enough fake payouts!');
             }
         }
         
-
         function initGame() {
+            loadGameData();
             initializeBoosts();
             updateDisplay();
             gameData.acePosition = Math.floor(Math.random() * 4);
             
-
             setInterval(() => {
                 const particle = document.createElement('div');
                 particle.textContent = ['💰', '💎', '⭐', '🎉', '✨', '🚀', '⚡', '🎯'][Math.floor(Math.random() * 8)];
@@ -1012,7 +1029,6 @@
             }, 2000);
         }
         
-
         const style = document.createElement('style');
         style.textContent = `
             @keyframes float {
@@ -1024,7 +1040,6 @@
         `;
         document.head.appendChild(style);
         
-
         initGame();
     </script>
     <body oncontextmenu="return false;">
